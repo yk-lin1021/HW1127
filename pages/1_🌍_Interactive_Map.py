@@ -1,5 +1,10 @@
 import streamlit as st
+import pandas as pd
+import requests
 import leafmap.foliumap as leafmap
+from io import StringIO
+
+st.set_page_config(layout="wide")
 
 markdown = """
 A Streamlit map template
@@ -11,22 +16,34 @@ st.sidebar.info(markdown)
 logo = "https://i.imgur.com/UbOXYAU.png"
 st.sidebar.image(logo)
 
+st.title("石門水庫集水區雨量資料")
 
-st.title("Interactive Map")
+with st.expander("See source code"):
+    with st.echo():
 
-col1, col2 = st.columns([4, 1])
-options = list(leafmap.basemaps.keys())
-index = options.index("OpenTopoMap")
+        m = leafmap.Map(center=[40, -100], zoom=6)
+        cities = "https://github.com/yk-lin1021/113-1gis/raw/refs/heads/main/rain.csv"
+        regions = "https://raw.githubusercontent.com/yk-lin1021/113-1gis/refs/heads/main/1130.geojson"
 
-with col2:
+        m.add_geojson(regions, layer_name="石門水庫集水區")
+        m.add_points_from_xy(
+            cities,
+            x="lon",
+            y="lat",
+            icon_names=["2023", "2022", "2021", "單位"],
+            spin=True,
+            add_legend=True,
+        )
 
-    basemap = st.selectbox("Select a basemap:", options, index)
+m.add_basemap("OpenTopoMap")
+m.to_streamlit(height=700)
 
+st.markdown(
+    f"""雨量測站資料"""
+)
 
-with col1:
-
-    m = leafmap.Map(
-        locate_control=True, latlon_control=True, draw_export=True, minimap_control=True
-    )
-    m.add_basemap(basemap)
-    m.to_streamlit(height=700)
+csv_url = "https://github.com/yk-lin1021/113-1gis/raw/refs/heads/main/rain.csv"
+response = requests.get(csv_url)
+csv_data = response.text  
+df = pd.read_csv(StringIO(csv_data))
+st.dataframe(df)
